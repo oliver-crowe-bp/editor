@@ -370,7 +370,7 @@ const CellEditor: React.FC<CellProps> = ({ focus, setActiveCell, parentEditor, l
   })
 
   const saveAndFocus = React.useCallback(
-    (nextCell: [number, number] | null) => {
+    (nextCell: [number, number] | null, setCell: boolean = true) => {
       editor.getEditorState().read(() => {
         const mdast = exportLexicalTreeToMdast({
           root: $getRoot(),
@@ -381,9 +381,11 @@ const CellEditor: React.FC<CellProps> = ({ focus, setActiveCell, parentEditor, l
         parentEditor.update(() => {
           lexicalTable.updateCellContents(colIndex, rowIndex, (mdast.children[0] as Mdast.Paragraph).children)
         })
+        parentEditor.dispatchCommand(NESTED_EDITOR_UPDATED_COMMAND, undefined)
       })
-
-      setActiveCell(nextCell)
+      if (setCell) {
+        setActiveCell(nextCell)
+      }
     },
     [colIndex, editor, exportVisitors, jsxComponentDescriptors, jsxIsAvailable, lexicalTable, parentEditor, rowIndex, setActiveCell]
   )
@@ -425,11 +427,7 @@ const CellEditor: React.FC<CellProps> = ({ focus, setActiveCell, parentEditor, l
         BLUR_COMMAND,
         (payload) => {
           const relatedTarget = payload.relatedTarget as HTMLElement | null
-
-          if (isPartOftheEditorUI(relatedTarget, rootEditor!.getRootElement()!)) {
-            return false
-          }
-          saveAndFocus(null)
+          saveAndFocus(null, !isPartOftheEditorUI(relatedTarget, rootEditor!.getRootElement()!))
           return true
         },
         COMMAND_PRIORITY_CRITICAL
